@@ -684,6 +684,7 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
 
   if (draw) {
     cairo_new_path(canvas_cairo);
+    cairo_rectangle(canvas_cairo, 0, 0, w, h);
     cairo_set_source_rgba(canvas_cairo, 1, .25, 0, 1);
     cairo_set_line_width(canvas_cairo, wininfo.border_thickness);
     cairo_fill(canvas_cairo);
