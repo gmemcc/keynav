@@ -24,6 +24,7 @@
 #include <X11/extensions/Xrandr.h>
 #include <glib.h>
 #include <cairo-xlib.h>
+#include <X11/Xatom.h>
 
 #ifdef PROFILE_THINGS
 #include <time.h>
@@ -118,10 +119,10 @@ static cairo_t *shape_cairo;
 
 static xdo_t *xdo;
 static struct appstate appstate = {
-  .active = 0,
-  .dragging = 0,
-  .recording = record_off,
-  .grid_nav = 0,
+    .active = 0,
+    .dragging = 0,
+    .recording = record_off,
+    .grid_nav = 0,
 };
 
 static int drag_button = 0;
@@ -200,41 +201,41 @@ typedef struct dispatch {
 } dispatch_t;
 
 dispatch_t dispatch[] = {
-  "cut-up", cmd_cut_up,
-  "cut-down", cmd_cut_down,
-  "cut-left", cmd_cut_left,
-  "cut-right", cmd_cut_right,
-  "move-up", cmd_move_up,
-  "move-down", cmd_move_down,
-  "move-left", cmd_move_left,
-  "move-right", cmd_move_right,
-  "cursorzoom", cmd_cursorzoom,
-  "windowzoom", cmd_windowzoom,
+    "cut-up", cmd_cut_up,
+    "cut-down", cmd_cut_down,
+    "cut-left", cmd_cut_left,
+    "cut-right", cmd_cut_right,
+    "move-up", cmd_move_up,
+    "move-down", cmd_move_down,
+    "move-left", cmd_move_left,
+    "move-right", cmd_move_right,
+    "cursorzoom", cmd_cursorzoom,
+    "windowzoom", cmd_windowzoom,
 
-  // Grid commands
-  "grid", cmd_grid,
-  "grid-nav", cmd_grid_nav,
-  "cell-select", cmd_cell_select,
+    // Grid commands
+    "grid", cmd_grid,
+    "grid-nav", cmd_grid_nav,
+    "cell-select", cmd_cell_select,
 
-  // Mouse activity
-  "warp", cmd_warp,
-  "click", cmd_click,
-  "doubleclick", cmd_doubleclick,
-  "drag", cmd_drag,
+    // Mouse activity
+    "warp", cmd_warp,
+    "click", cmd_click,
+    "doubleclick", cmd_doubleclick,
+    "drag", cmd_drag,
 
-  // Other commands.
-  "loadconfig", cmd_loadconfig,
-  "daemonize", cmd_daemonize,
-  "sh", cmd_shell,
-  "start", cmd_start,
-  "end", cmd_end,
-  "toggle-start", cmd_toggle_start,
-  "history-back", cmd_history_back,
-  "quit", cmd_quit,
-  "restart", cmd_restart,
-  "record", cmd_record,
-  "playback", cmd_playback,
-  NULL, NULL,
+    // Other commands.
+    "loadconfig", cmd_loadconfig,
+    "daemonize", cmd_daemonize,
+    "sh", cmd_shell,
+    "start", cmd_start,
+    "end", cmd_end,
+    "toggle-start", cmd_toggle_start,
+    "history-back", cmd_history_back,
+    "quit", cmd_quit,
+    "restart", cmd_restart,
+    "record", cmd_record,
+    "playback", cmd_playback,
+    NULL, NULL,
 };
 
 typedef struct keybinding {
@@ -263,20 +264,20 @@ int parse_keycode(char *keyseq) {
 
   strptr = dup = strdup(keyseq);
   //printf("finding keycode for %s\n", keyseq);
-  while ((tok = strtok_r(strptr, "+", &tokctx)) != NULL) {
+  while ((tok = strtok_r(strptr, "+", &tokctx))!=NULL) {
     last_tok = tok;
     strptr = NULL;
   }
 
   keysym = XStringToKeysym(last_tok);
-  if (keysym == NoSymbol) {
+  if (keysym==NoSymbol) {
     fprintf(stderr, "No keysym found for '%s' in sequence '%s'\n",
             last_tok, keyseq);
     /* At this point, we'll be returning 0 for keycode */
   } else {
     /* Valid keysym */
     keycode = XKeysymToKeycode(dpy, keysym);
-    if (keycode == 0) {
+    if (keycode==0) {
       fprintf(stderr, "Unable to lookup keycode for %s\n", last_tok);
     }
   }
@@ -297,7 +298,7 @@ int parse_mods(char *keyseq) {
   mods = g_ptr_array_new();
 
   strptr = dup = strdup(keyseq);
-  while ((tok = strtok_r(strptr, "+", &tokctx)) != NULL) {
+  while ((tok = strtok_r(strptr, "+", &tokctx))!=NULL) {
     strptr = NULL;
     g_ptr_array_add(mods, tok);
   }
@@ -310,7 +311,7 @@ int parse_mods(char *keyseq) {
     int j = 0;
     const char *mod = g_ptr_array_index(mods, i);
 
-    for (j = 0; symbol_map[j] != NULL; j+=2) {
+    for (j = 0; symbol_map[j]!=NULL; j += 2) {
       if (!strcasecmp(mod, symbol_map[j])) {
         mod = symbol_map[j + 1];
       }
@@ -318,14 +319,14 @@ int parse_mods(char *keyseq) {
 
     keysym = XStringToKeysym(mod);
     //printf("%s => %d\n", mod, keysym);
-    if ((keysym == XK_Shift_L) || (keysym == XK_Shift_R))
+    if ((keysym==XK_Shift_L) || (keysym==XK_Shift_R))
       modmask |= ShiftMask;
-    if ((keysym == XK_Control_L) || (keysym == XK_Control_R))
+    if ((keysym==XK_Control_L) || (keysym==XK_Control_R))
       modmask |= ControlMask;
-    if ((keysym == XK_Alt_L) || (keysym == XK_Alt_R))
+    if ((keysym==XK_Alt_L) || (keysym==XK_Alt_R))
       modmask |= Mod1Mask;
-    if ((keysym == XK_Super_L) || (keysym == XK_Super_R)
-        || (keysym == XK_Hyper_L) || (keysym == XK_Hyper_R))
+    if ((keysym==XK_Super_L) || (keysym==XK_Super_R)
+        || (keysym==XK_Hyper_L) || (keysym==XK_Hyper_R))
       modmask |= Mod4Mask;
     if (!strcasecmp(mod, "mod1"))
       modmask |= Mod1Mask;
@@ -353,7 +354,7 @@ void addbinding(int keycode, int mods, char *commands) {
   // Check if we already have a binding for this, if so, override it.
   for (i = 0; i < keybindings->len; i++) {
     keybinding_t *kbt = g_ptr_array_index(keybindings, i);
-    if (kbt->keycode == keycode && kbt->mods == mods) {
+    if (kbt->keycode==keycode && kbt->mods==mods) {
       free(kbt->commands);
       kbt->commands = strdup(commands);
       return;
@@ -391,7 +392,7 @@ void addbinding(int keycode, int mods, char *commands) {
       path++;
 
     /* If args is nonempty, try to use it as the file to store recordings in */
-    if (path != NULL && path[0] != '\0') {
+    if (path!=NULL && path[0]!='\0') {
       /* Handle ~/ swapping in for actual homedir */
       if (!strncmp(path, "~/", 2)) {
         asprintf(&newrecordingpath, "%s/%s", getenv("HOME"), path + 2);
@@ -401,7 +402,7 @@ void addbinding(int keycode, int mods, char *commands) {
 
       /* Fail if we try to set the record file to another name than we set
        * previously */
-      if (recordings_filename != NULL
+      if (recordings_filename!=NULL
           && strcmp(recordings_filename, newrecordingpath)) {
         free(newrecordingpath);
         fprintf(stderr,
@@ -416,16 +417,16 @@ void addbinding(int keycode, int mods, char *commands) {
   } /* special config handling for 'record' */
 }
 
-void parse_config_file(const char* file) {
+void parse_config_file(const char *file) {
   FILE *fp = NULL;
 #define LINEBUF_SIZE 512
   char line[LINEBUF_SIZE];
   int lineno = 0;
 
-  if (file[0] == '~') {
+  if (file[0]=='~') {
     const char *homedir = getenv("HOME");
 
-    if (homedir != NULL) {
+    if (homedir!=NULL) {
       char *rcfile = NULL;
       asprintf(&rcfile, "%s/%s", homedir, file + 1 /* skip first char '~' */);
       parse_config_file(rcfile);
@@ -443,21 +444,21 @@ void parse_config_file(const char* file) {
   fp = fopen(file, "r");
 
   /* Silently ignore file read errors */
-  if (fp == NULL) {
+  if (fp==NULL) {
     //fprintf(stderr, "Error trying to open file for read '%s'\n", file);
     //perror("Error");
     return;
   }
   /* fopen succeeded */
-  while (fgets(line, LINEBUF_SIZE, fp) != NULL) {
+  while (fgets(line, LINEBUF_SIZE, fp)!=NULL) {
     lineno++;
 
     /* Kill the newline */
-    while (line[strlen(line) - 1] == '\n' ||
-           line[strlen(line) - 1] == '\r')
-    *(line + strlen(line) - 1) = '\0';
+    while (line[strlen(line) - 1]=='\n' ||
+        line[strlen(line) - 1]=='\r')
+      *(line + strlen(line) - 1) = '\0';
 
-    if (parse_config_line(line) != 0) {
+    if (parse_config_line(line)!=0) {
       fprintf(stderr, "Error with config %s:%d: %s\n", file, lineno, line);
     }
   }
@@ -480,7 +481,7 @@ void parse_config() {
   char *user_config_file;
 
   if (config_home &&
-      asprintf(&user_config_file, "%s/keynav/keynavrc", config_home) != -1) {
+      asprintf(&user_config_file, "%s/keynav/keynavrc", config_home)!=-1) {
     parse_config_file(user_config_file);
     free(user_config_file);
   } else {
@@ -493,52 +494,52 @@ void defaults() {
   char *tmp;
   int i;
   char *default_config[] = {
-    "clear",
-    "ctrl+semicolon start",
-    "Escape end",
-    "ctrl+bracketleft end", /* for vi people who use ^[ */
-    "q record ~/.keynav_macros",
-    "shift+at playback",
-    "a history-back",
-    "h cut-left",
-    "j cut-down",
-    "k cut-up",
-    "l cut-right",
-    "shift+h move-left",
-    "shift+j move-down",
-    "shift+k move-up",
-    "shift+l move-right",
-    "space warp,click 1,end",
-    "Return warp,click 1,end",
-    "semicolon warp,end",
-    "w warp",
-    "t windowzoom",
-    "c cursorzoom 300 300",
-    "e end",
-    "1 click 1",
-    "2 click 2",
-    "3 click 3",
-    "ctrl+h cut-left",
-    "ctrl+j cut-down",
-    "ctrl+k cut-up",
-    "ctrl+l cut-right",
-    "y cut-left,cut-up",
-    "u cut-right,cut-up",
-    "b cut-left,cut-down",
-    "n cut-right,cut-down",
-    "shift+y move-left,move-up",
-    "shift+u move-right,move-up",
-    "shift+b move-left,move-down",
-    "shift+n move-right,move-down",
-    "ctrl+y cut-left,cut-up",
-    "ctrl+u cut-right,cut-up",
-    "ctrl+b cut-left,cut-down",
-    "ctrl+n cut-right,cut-down",
-    NULL,
+      "clear",
+      "ctrl+semicolon start",
+      "Escape end",
+      "ctrl+bracketleft end", /* for vi people who use ^[ */
+      "q record ~/.keynav_macros",
+      "shift+at playback",
+      "a history-back",
+      "h cut-left",
+      "j cut-down",
+      "k cut-up",
+      "l cut-right",
+      "shift+h move-left",
+      "shift+j move-down",
+      "shift+k move-up",
+      "shift+l move-right",
+      "space warp,click 1,end",
+      "Return warp,click 1,end",
+      "semicolon warp,end",
+      "w warp",
+      "t windowzoom",
+      "c cursorzoom 300 300",
+      "e end",
+      "1 click 1",
+      "2 click 2",
+      "3 click 3",
+      "ctrl+h cut-left",
+      "ctrl+j cut-down",
+      "ctrl+k cut-up",
+      "ctrl+l cut-right",
+      "y cut-left,cut-up",
+      "u cut-right,cut-up",
+      "b cut-left,cut-down",
+      "n cut-right,cut-down",
+      "shift+y move-left,move-up",
+      "shift+u move-right,move-up",
+      "shift+b move-left,move-down",
+      "shift+n move-right,move-down",
+      "ctrl+y cut-left,cut-up",
+      "ctrl+u cut-right,cut-up",
+      "ctrl+b cut-left,cut-down",
+      "ctrl+n cut-right,cut-down",
+      NULL,
   };
   for (i = 0; default_config[i]; i++) {
     tmp = strdup(default_config[i]);
-    if (parse_config_line(tmp) != 0) {
+    if (parse_config_line(tmp)!=0) {
       fprintf(stderr, "Error with default config line %d: %s\n", i + 1, tmp);
     }
     free(tmp);
@@ -564,7 +565,7 @@ int parse_config_line(char *orig_line) {
 
   /* Ignore everything after a '#' */
   comment = strchr(line, '#');
-  if (comment != NULL)
+  if (comment!=NULL)
     *comment = '\0';
 
   /* Ignore leading whitespace */
@@ -572,14 +573,14 @@ int parse_config_line(char *orig_line) {
     line++;
 
   /* Ignore empty lines */
-  if (*line == '\n' || *line == '\0')
+  if (*line=='\n' || *line=='\0')
     return 0;
 
   tokctx = line;
   keyseq = strdup(strtok_r(line, " ", &tokctx));
 
   /* A special config option that will clear all keybindings */
-  if (strcmp(keyseq, "clear") == 0) {
+  if (strcmp(keyseq, "clear")==0) {
     /* TODO(sissel): Make this a cmd_clear function */
     /* Reset keybindings */
     g_ptr_array_free(keybindings, TRUE);
@@ -600,13 +601,13 @@ int parse_config_line(char *orig_line) {
       g_ptr_array_free(startkeys, TRUE);
       startkeys = g_ptr_array_new();
     }
-  } else if (strcmp(keyseq, "daemonize") == 0) {
+  } else if (strcmp(keyseq, "daemonize")==0) {
     handle_commands(keyseq);
-  } else if (strcmp(keyseq, "loadconfig") == 0) {
+  } else if (strcmp(keyseq, "loadconfig")==0) {
     handle_commands(keyseq);
   } else {
     keycode = parse_keycode(keyseq);
-    if (keycode == 0) {
+    if (keycode==0) {
       fprintf(stderr, "Problem parsing keysequence '%s'\n", keyseq);
       return 1;
     }
@@ -615,7 +616,7 @@ int parse_config_line(char *orig_line) {
     /* FreeBSD sets 'tokctx' to NULL at end of string.
      * glibc sets 'tokctx' to the next character (the '\0')
      * Reported by Richard Kolkovich */
-    if (tokctx == NULL || *tokctx == '\0') {
+    if (tokctx==NULL || *tokctx=='\0') {
       fprintf(stderr, "Incomplete configuration line. Missing commands: '%s'\n", line);
       return 1;
     }
@@ -639,19 +640,19 @@ int percent_of(int num, char *args, float default_val) {
 
   /* > 1, then it's not a percent, it's an absolute value. */
   if (pct > 1.0)
-    return (int)pct;
+    return (int) pct;
 
-  value = (int)((num * (pct * precision)) / precision);
+  value = (int) ((num*(pct*precision))/precision);
   return value;
 }
 
 void updatecliprects(wininfo_t *info, XRectangle **rectangles, int *nrects) {
   int rects = (info->grid_cols + 1) + (info->grid_rows + 1) /* grid lines */
-              + (info->grid_cols * info->grid_rows); /* grid text boxes */
+      + (info->grid_cols*info->grid_rows); /* grid text boxes */
 
-  if (rects != nclip_rectangles) {
+  if (rects!=nclip_rectangles) {
     nclip_rectangles = rects;
-    clip_rectangles = realloc(clip_rectangles, nclip_rectangles * sizeof(XRectangle));
+    clip_rectangles = realloc(clip_rectangles, nclip_rectangles*sizeof(XRectangle));
   }
 }
 
@@ -665,7 +666,7 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
 
   if (apply_clip) {
     updatecliprects(info, &clip_rectangles, &nclip_rectangles);
-    memset(clip_rectangles, 0, nclip_rectangles * sizeof(XRectangle));
+    memset(clip_rectangles, 0, nclip_rectangles*sizeof(XRectangle));
   }
 
 #ifdef PROFILE_THINGS
@@ -674,23 +675,22 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
 #endif
 
   if (w <= 4 || h <= 4) {
-      cairo_new_path(canvas_cairo);
-      cairo_fill(canvas_cairo);
-      return;
+    cairo_new_path(canvas_cairo);
+    cairo_fill(canvas_cairo);
+    return;
   }
 
   //printf("updategrid: clip:%d, draw:%d\n", apply_clip, draw);
 
   if (draw) {
     cairo_new_path(canvas_cairo);
-    cairo_set_source_rgb(canvas_cairo, 1, 1, 1);
-    cairo_rectangle(canvas_cairo, 0, 0, w, h);
+    cairo_set_source_rgba(canvas_cairo, 1, .25, 0, 1);
     cairo_set_line_width(canvas_cairo, wininfo.border_thickness);
     cairo_fill(canvas_cairo);
   }
 
-  cell_width = (w / info->grid_cols);
-  cell_height = (h / info->grid_rows);
+  cell_width = (w/info->grid_cols);
+  cell_height = (h/info->grid_rows);
 
   int x_total_offset = 0;
 
@@ -698,18 +698,19 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
   for (i = 0; i <= info->grid_cols; i++) {
     int x_off = 0;
     if (i > 0) {
-        x_off = -info->border_thickness / 2;
+      x_off = -info->border_thickness/2;
     }
 
-    if (i == info->grid_cols) {
-        x_total_offset = info->w - 1;
+    if (i==info->grid_cols) {
+      x_total_offset = info->w - 1;
     }
 
     int x_w_off = 0;
-    if (i == 0 || i == info->grid_cols) {
-        x_w_off = info->border_thickness / 2;
+    if (i==0 || i==info->grid_cols) {
+      x_w_off = info->border_thickness/2;
     }
-
+    cairo_set_line_cap(canvas_cairo, CAIRO_LINE_CAP_ROUND);
+    cairo_set_line_join(canvas_cairo, CAIRO_LINE_JOIN_ROUND);
     cairo_move_to(canvas_cairo, x_total_offset + 1, 0);
     cairo_line_to(canvas_cairo, x_total_offset + 1, info->h);
 
@@ -728,18 +729,20 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
   for (i = 0; i <= info->grid_rows; i++) {
     int y_off = 0;
     if (i > 0) {
-        y_off = -info->border_thickness / 2;
+      y_off = -info->border_thickness/2;
     }
 
-    if (i == info->grid_rows) {
-        y_total_offset = info->h - 1;
+    if (i==info->grid_rows) {
+      y_total_offset = info->h - 1;
     }
 
     int y_w_off = 0;
-    if (i == 0 || i == info->grid_rows) {
-        y_w_off = info->border_thickness / 2;
+    if (i==0 || i==info->grid_rows) {
+      y_w_off = info->border_thickness/2;
     }
 
+    cairo_set_line_cap(canvas_cairo, CAIRO_LINE_CAP_ROUND);
+    cairo_set_line_join(canvas_cairo, CAIRO_LINE_JOIN_ROUND);
     cairo_move_to(canvas_cairo, 0, y_total_offset + 1);
     cairo_line_to(canvas_cairo, info->w, y_total_offset + 1);
 
@@ -764,8 +767,8 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
 #endif
 
   if (draw) {
-    cairo_set_source_rgba(canvas_cairo, 0, 0, 0, 1.0);
-    cairo_set_line_width(canvas_cairo, 1);
+    cairo_set_source_rgba(canvas_cairo, 0, 0, 0, 0.0);
+    cairo_set_line_width(canvas_cairo, 0);
     cairo_stroke(canvas_cairo);
 
 #ifdef PROFILE_THINGS
@@ -791,8 +794,8 @@ void updategridtext(Window win, struct wininfo *info, int apply_clip, int draw) 
 
   int rect = (info->grid_cols + 1 + info->grid_rows + 1); /* start at end of grid lines */
 
-  x_off = info->border_thickness / 2;
-  y_off = info->border_thickness / 2;
+  x_off = info->border_thickness/2;
+  y_off = info->border_thickness/2;
 
   cairo_text_extents_t te;
 #define FONTSIZE 18
@@ -806,8 +809,8 @@ void updategridtext(Window win, struct wininfo *info, int apply_clip, int draw) 
 
   w -= info->border_thickness;
   h -= info->border_thickness;
-  cell_width = (w / info->grid_cols);
-  cell_height = (h / info->grid_rows);
+  cell_width = (w/info->grid_cols);
+  cell_height = (h/info->grid_rows);
 
   h++;
   w++;
@@ -823,22 +826,22 @@ void updategridtext(Window win, struct wininfo *info, int apply_clip, int draw) 
     for (row = 0; row < info->grid_rows; row++) {
       int rectwidth = te.width + 25;
       int rectheight = te.height + 8;
-      int xpos = cell_width * col + x_off + (cell_width / 2);
-      int ypos = cell_height * row + y_off + (cell_height / 2);
+      int xpos = cell_width*col + x_off + (cell_width/2);
+      int ypos = cell_height*row + y_off + (cell_height/2);
 
-      row_selected = (appstate.grid_nav && appstate.grid_nav_row == row
-                      && appstate.grid_nav_state == GRID_NAV_COL);
+      row_selected = (appstate.grid_nav && appstate.grid_nav_row==row
+          && appstate.grid_nav_state==GRID_NAV_COL);
       //printf("Grid: %c%c\n", label[0], label[1]);
 
       /* If the current column is the one selected by grid nav, use
        * a different color */
       //printf("Grid geom: %fx%f @ %d,%d\n",
-             //xpos - rectwidth / 2 + te.x_bearing / 2,
-             //ypos - rectheight / 2 + te.y_bearing / 2,
-             //rectwidth, rectheight);
+      //xpos - rectwidth / 2 + te.x_bearing / 2,
+      //ypos - rectheight / 2 + te.y_bearing / 2,
+      //rectwidth, rectheight);
       cairo_rectangle(canvas_cairo,
-                      xpos - rectwidth / 2 + te.x_bearing / 2,
-                      ypos - rectheight / 2 + te.y_bearing / 2,
+                      xpos - rectwidth/2 + te.x_bearing/2,
+                      ypos - rectheight/2 + te.y_bearing/2,
                       rectwidth, rectheight);
       if (draw) {
         cairo_path_t *pathcopy;
@@ -862,15 +865,15 @@ void updategridtext(Window win, struct wininfo *info, int apply_clip, int draw) 
           cairo_set_source_rgb(canvas_cairo, .8, .8, .8);
         }
         cairo_fill(canvas_cairo);
-        cairo_move_to(canvas_cairo, xpos - te.width / 2, ypos);
+        cairo_move_to(canvas_cairo, xpos - te.width/2, ypos);
         cairo_show_text(canvas_cairo, label);
       }
 
       if (apply_clip) {
-        clip_rectangles[rect].x = xpos - rectwidth / 2 + te.x_bearing / 2;
-        clip_rectangles[rect].y = ypos - rectheight / 2 + te.y_bearing / 2;
+        clip_rectangles[rect].x = xpos - rectwidth/2 + te.x_bearing/2;
+        clip_rectangles[rect].y = ypos - rectheight/2 + te.y_bearing/2;
         clip_rectangles[rect].width = rectwidth + 1;
-        clip_rectangles[rect].height =  rectheight + 1;
+        clip_rectangles[rect].height = rectheight + 1;
         rect++;
       }
       label[0]++;
@@ -899,7 +902,7 @@ void grab_keyboard() {
    */
   grabstate = XGrabKeyboard(dpy, viewports[wininfo.curviewport].root, False,
                             GrabModeAsync, GrabModeAsync, CurrentTime);
-  while (grabstate != GrabSuccess) {
+  while (grabstate!=GrabSuccess) {
     usleep(10000); /* sleep for 10ms */
     grabstate = XGrabKeyboard(dpy, viewports[wininfo.curviewport].root, False,
                               GrabModeAsync, GrabModeAsync, CurrentTime);
@@ -950,7 +953,7 @@ void cmd_start(char *args) {
   appstate.need_draw = 1;
   appstate.need_moveresize = 1;
 
-  if (zone == 0) { /* Create our window for the first time */
+  if (zone==0) { /* Create our window for the first time */
     viewport_t *viewport = &(viewports[wininfo.curviewport]);
 
     depth = viewports[wininfo.curviewport].screen->root_depth;
@@ -958,6 +961,11 @@ void cmd_start(char *args) {
 
     zone = XCreateSimpleWindow(dpy, viewport->root,
                                wininfo.x, wininfo.y, wininfo.w, wininfo.h, 0, 0, 0);
+    Atom atom = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
+    uint opacity = 0x80000000; /* 0x0 .. 0xffffffff */
+    XChangeProperty(dpy, zone, atom, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *) &opacity, 1L);
+
     xdo_set_window_class(xdo, zone, "keynav", "keynav");
     canvas_gc = XCreateGC(dpy, zone, 0, NULL);
 
@@ -967,8 +975,6 @@ void cmd_start(char *args) {
                                                viewport->screen->root_visual,
                                                viewport->w, viewport->h);
     canvas_cairo = cairo_create(canvas_surface);
-    cairo_set_antialias(canvas_cairo, CAIRO_ANTIALIAS_NONE);
-    cairo_set_line_cap(canvas_cairo, CAIRO_LINE_CAP_SQUARE);
 
     shape = XCreatePixmap(dpy, zone, viewport->w, viewport->h, 1);
     shape_surface = cairo_xlib_surface_create_for_bitmap(dpy, shape,
@@ -976,16 +982,13 @@ void cmd_start(char *args) {
                                                          viewport->w,
                                                          viewport->h);
     shape_cairo = cairo_create(shape_surface);
-    cairo_set_line_width(shape_cairo, wininfo.border_thickness);
-    cairo_set_antialias(canvas_cairo, CAIRO_ANTIALIAS_NONE);
-    cairo_set_line_cap(shape_cairo, CAIRO_LINE_CAP_SQUARE);
 
     /* Tell the window manager not to manage us */
     winattr.override_redirect = 1;
     XChangeWindowAttributes(dpy, zone, CWOverrideRedirect, &winattr);
 
     XSelectInput(dpy, zone, StructureNotifyMask | ExposureMask
-                 | PointerMotionMask | LeaveWindowMask );
+        | PointerMotionMask | LeaveWindowMask);
   } /* if zone == 0 */
 }
 
@@ -998,7 +1001,7 @@ void cmd_end(char *args) {
     cmd_drag(NULL);
 
   /* Stop recording if we're in that mode */
-  if (appstate.recording != record_off) {
+  if (appstate.recording!=record_off) {
     cmd_record(NULL);
   }
 
@@ -1036,7 +1039,7 @@ void cmd_history_back(char *args) {
 
 void cmd_loadconfig(char *args) {
   // Trim leading and trailing quotes if they exist
-  if (*args == '"') {
+  if (*args=='"') {
     args++;
     *(args + strlen(args) - 1) = '\0';
   }
@@ -1046,15 +1049,15 @@ void cmd_loadconfig(char *args) {
 
 void cmd_shell(char *args) {
   // Trim leading and trailing quotes if they exist
-  if (*args == '"') {
+  if (*args=='"') {
     args++;
     *(args + strlen(args) - 1) = '\0';
   }
 
-  if (fork() == 0) { /* child */
+  if (fork()==0) { /* child */
     int ret;
     char *const shell = "/bin/sh";
-    char *const argv[4] = { shell, "-c", args, NULL };
+    char *const argv[4] = {shell, "-c", args, NULL};
     //printf("Exec: %s\n", args);
     //printf("Shell: %s\n", shell);
     ret = execvp(shell, argv);
@@ -1131,18 +1134,18 @@ void cmd_cursorzoom(char *args) {
     return;
 
   int count = sscanf(args, "%d %d", &width, &height);
-  if (count == 0) {
+  if (count==0) {
     fprintf(stderr,
             "Invalid usage of 'cursorzoom' (expected at least 1 argument)\n");
-  } else if (count == 1) {
+  } else if (count==1) {
     /* If only one argument, assume we want a square. */
     height = width;
   }
 
   xdo_get_mouse_location(xdo, &xloc, &yloc, NULL);
 
-  wininfo.x = xloc - (width / 2);
-  wininfo.y = yloc - (height / 2);
+  wininfo.x = xloc - (width/2);
+  wininfo.y = yloc - (height/2);
   wininfo.w = width;
   wininfo.h = height;
 }
@@ -1172,10 +1175,10 @@ void cmd_warp(char *args) {
   if (!ISACTIVE)
     return;
   int x, y;
-  x = wininfo.x + wininfo.w / 2;
-  y = wininfo.y + wininfo.h / 2;
+  x = wininfo.x + wininfo.w/2;
+  y = wininfo.y + wininfo.h/2;
 
-  if (mouseinfo.x != -1 && mouseinfo.y != -1) {
+  if (mouseinfo.x!=-1 && mouseinfo.y!=-1) {
     closepixel(dpy, zone, &mouseinfo);
   }
 
@@ -1216,14 +1219,14 @@ void cmd_drag(char *args) {
     return;
 
   int button;
-  if (args == NULL) {
+  if (args==NULL) {
     button = drag_button;
   } else {
     int count = sscanf(args, "%d %127s", &button, drag_modkeys);
-    if (count == 0) {
+    if (count==0) {
       button = 1; /* Default to left mouse button */
       drag_modkeys[0] = '\0';
-    } else if (count == 1) {
+    } else if (count==1) {
       drag_modkeys[0] = '\0';
     }
   }
@@ -1260,7 +1263,7 @@ void cmd_grid_nav(char *args) {
   } else if (!strcmp("off", args)) {
     appstate.grid_label = GRID_LABEL_NONE;
   } else if (!strcmp("toggle", args)) {
-    if (appstate.grid_label == GRID_LABEL_NONE) {
+    if (appstate.grid_label==GRID_LABEL_NONE) {
       appstate.grid_label = GRID_LABEL_AA;
     } else {
       appstate.grid_label = GRID_LABEL_NONE;
@@ -1268,7 +1271,7 @@ void cmd_grid_nav(char *args) {
   }
 
   /* Set state grid_nav if grid_label is anything but NONE */
-  if (appstate.grid_label == GRID_LABEL_NONE) {
+  if (appstate.grid_label==GRID_LABEL_NONE) {
     appstate.grid_nav = 0;
   } else {
     appstate.grid_nav = 1;
@@ -1310,26 +1313,26 @@ void cmd_cell_select(char *args) {
 
   // if z > 0, then this means we said "cell-select N"
   if (z > 0) {
-    double dx = (double)z / (double)wininfo.grid_rows;
-    col = (z / wininfo.grid_rows);
-    if ( (double)col != dx ) {
+    double dx = (double) z/(double) wininfo.grid_rows;
+    col = (z/wininfo.grid_rows);
+    if ((double) col!=dx) {
       col++;
     }
-    row = (z % wininfo.grid_rows);
-    if ( 0 == row ) {
+    row = (z%wininfo.grid_rows);
+    if (0==row) {
       row = wininfo.grid_rows;
     }
   }
 
   if (col <= 0 && row <= 0) {
     fprintf(stderr, "Cell number cannot be zero or negative. I was given"
-            "columns=%d and rows=%d\n", col, row);
+                    "columns=%d and rows=%d\n", col, row);
     return;
   }
 
   if (col > wininfo.grid_cols && row > wininfo.grid_rows) {
     fprintf(stderr, "The active grid is %dx%d, and you selected %dx%d which "
-            "does not exist.\n", wininfo.grid_cols, wininfo.grid_rows, col, row);
+                    "does not exist.\n", wininfo.grid_cols, wininfo.grid_rows, col, row);
     return;
   }
 
@@ -1340,10 +1343,10 @@ void cmd_cell_select(char *args) {
 
 void cell_select(int col, int row) {
   //printf("cell_select: %d, %d\n", col, row);
-  wininfo.w = wininfo.w / wininfo.grid_cols;
-  wininfo.h = wininfo.h / wininfo.grid_rows;
-  wininfo.x = wininfo.x + (wininfo.w * (col));
-  wininfo.y = wininfo.y + (wininfo.h * (row));
+  wininfo.w = wininfo.w/wininfo.grid_cols;
+  wininfo.h = wininfo.h/wininfo.grid_rows;
+  wininfo.x = wininfo.x + (wininfo.w*(col));
+  wininfo.y = wininfo.y + (wininfo.h*(row));
 }
 
 void cmd_daemonize(char *args) {
@@ -1361,12 +1364,12 @@ void cmd_record(char *args) {
   if (!ISACTIVE)
     return;
 
-  if (appstate.recording != record_off) {
+  if (appstate.recording!=record_off) {
     appstate.recording = record_off;
     g_ptr_array_add(recordings, (gpointer) active_recording);
 
     /* Save to file */
-    if (recordings_filename != NULL) {
+    if (recordings_filename!=NULL) {
       recordings_save(recordings_filename);
     }
   } else {
@@ -1391,11 +1394,11 @@ void update() {
   //printf("window: %d,%d @ %d,%d\n", wininfo.w, wininfo.h, wininfo.x, wininfo.y);
   //printf("previous: %d,%d @ %d,%d\n", previous->w, previous->h, previous->x, previous->y);
   int draw = 0, move = 0, resize = 0, clip = 0;
-  if (previous->x != wininfo.x || previous->y != wininfo.y) {
+  if (previous->x!=wininfo.x || previous->y!=wininfo.y) {
     move = 1;
   }
 
-  if (previous->w != wininfo.w || previous->h != wininfo.h) {
+  if (previous->w!=wininfo.w || previous->h!=wininfo.h) {
     clip = 1;
     draw = 1;
     resize = 1;
@@ -1425,7 +1428,7 @@ void update() {
   if (clip || draw) {
     updategrid(zone, &wininfo, clip, draw);
 
-    if (appstate.grid_label != GRID_LABEL_NONE) {
+    if (appstate.grid_label!=GRID_LABEL_NONE) {
       updategridtext(zone, &wininfo, clip, draw);
     }
 
@@ -1438,10 +1441,9 @@ void update() {
     }
   }
 
-
   if (resize && move) {
     //printf("=> %ld: %dx%d @ %d,%d\n", zone, wininfo.w, wininfo.h, wininfo.x,
-           //wininfo.y);
+    //wininfo.y);
     XMoveResizeWindow(dpy, zone, wininfo.x, wininfo.y, wininfo.w, wininfo.h);
 
     /* Under Gnome3/GnomeShell, it seems to ignore this move+resize request
@@ -1489,14 +1491,14 @@ void viewport_right() {
 
   /* Expand if the current window is the size of the current viewport */
   //printf("right %d] %d,%d vs %d,%d\n", wininfo.curviewport,
-         //wininfo.w, wininfo.h,
-         //viewports[wininfo.curviewport].w, viewports[wininfo.curviewport].h);
-  if (wininfo.curviewport == nviewports - 1)
+  //wininfo.w, wininfo.h,
+  //viewports[wininfo.curviewport].w, viewports[wininfo.curviewport].h);
+  if (wininfo.curviewport==nviewports - 1)
     return;
 
-  if (wininfo.w == viewports[wininfo.curviewport].w)
+  if (wininfo.w==viewports[wininfo.curviewport].w)
     expand_w = 1;
-  if (wininfo.h == viewports[wininfo.curviewport].h) {
+  if (wininfo.h==viewports[wininfo.curviewport].h) {
     expand_h = 1;
   }
 
@@ -1516,14 +1518,14 @@ void viewport_left() {
 
   /* Expand if the current window is the size of the current viewport */
   //printf("left %d] %d,%d vs %d,%d\n", wininfo.curviewport,
-         //wininfo.w, wininfo.h,
-         //viewports[wininfo.curviewport].w, viewports[wininfo.curviewport].h);
-  if (wininfo.curviewport == 0)
+  //wininfo.w, wininfo.h,
+  //viewports[wininfo.curviewport].w, viewports[wininfo.curviewport].h);
+  if (wininfo.curviewport==0)
     return;
 
-  if (wininfo.w == viewports[wininfo.curviewport].w)
+  if (wininfo.w==viewports[wininfo.curviewport].w)
     expand_w = 1;
-  if (wininfo.h == viewports[wininfo.curviewport].h) {
+  if (wininfo.h==viewports[wininfo.curviewport].h) {
     expand_h = 1;
   }
 
@@ -1544,8 +1546,8 @@ void handle_keypress(XKeyEvent *e) {
    * mouse buttons (active when dragging), numlock (including Mod2Mask) */
   e->state &= (ShiftMask | ControlMask | Mod1Mask | Mod3Mask | Mod4Mask | Mod4Mask);
 
-  if (appstate.recording == record_getkey) {
-    if (handle_recording(e) == HANDLE_STOP) {
+  if (appstate.recording==record_getkey) {
+    if (handle_recording(e)==HANDLE_STOP) {
       return;
     }
   }
@@ -1554,7 +1556,7 @@ void handle_keypress(XKeyEvent *e) {
     /* Loop over known recordings */
     for (i = 0; i < recordings->len; i++) {
       recording_t *rec = g_ptr_array_index(recordings, i);
-      if (e->keycode == rec->keycode) {
+      if (e->keycode==rec->keycode) {
         int j = 0;
         for (j = 0; j < rec->commands->len; j++) {
           handle_commands(g_ptr_array_index(rec->commands, j));
@@ -1567,7 +1569,7 @@ void handle_keypress(XKeyEvent *e) {
   }
 
   if (appstate.grid_nav) {
-    if (handle_gridnav(e) == HANDLE_STOP) {
+    if (handle_gridnav(e)==HANDLE_STOP) {
       return;
     }
   }
@@ -1578,7 +1580,7 @@ void handle_keypress(XKeyEvent *e) {
     int keycode = kbt->keycode;
     int mods = kbt->mods;
     char *commands = kbt->commands;
-    if ((keycode == e->keycode) && (mods == e->state)) {
+    if ((keycode==e->keycode) && (mods==e->state)) {
       handle_commands(commands);
     }
   }
@@ -1592,7 +1594,7 @@ handler_info_t handle_recording(XKeyEvent *e) {
   /* check existing recording keycodes if we need to override it */
   for (i = 0; i < recordings->len; i++) {
     recording_t *rec = (recording_t *) g_ptr_array_index(recordings, i);
-    if (rec->keycode == e->keycode) {
+    if (rec->keycode==e->keycode) {
       g_ptr_array_free(rec->commands, TRUE);
       g_ptr_array_remove_index_fast(recordings, i);
       i--; /* array removal will shift everything down one to make up for the
@@ -1618,13 +1620,13 @@ handler_info_t handle_gridnav(XKeyEvent *e) {
   KeySym sym = XkbKeycodeToKeysym(dpy, e->keycode, 0, index);
   char *key = XKeysymToString(sym);
 
-  if (sym == XK_Escape) {
+  if (sym==XK_Escape) {
     cmd_grid_nav("off");
     update();
     return HANDLE_STOP;
   }
 
-  if (!(strlen(key) == 1 && isalpha(*key))) {
+  if (!(strlen(key)==1 && isalpha(*key))) {
     return HANDLE_CONTINUE;
   }
   int val = tolower(*key) - 'a';
@@ -1634,7 +1636,7 @@ handler_info_t handle_gridnav(XKeyEvent *e) {
   }
 
   /* TODO(sissel): Only GRID_LABEL_AA supported right now */
-  if (appstate.grid_nav_state == GRID_NAV_COL) {
+  if (appstate.grid_nav_state==GRID_NAV_COL) {
     if (val >= wininfo.grid_cols) {
       return HANDLE_CONTINUE; /* Invalid key in this grid, pass */
     }
@@ -1650,7 +1652,7 @@ handler_info_t handle_gridnav(XKeyEvent *e) {
     save_history_point();
     appstate.grid_nav_row = -1;
     appstate.grid_nav_col = -1;
-  } else if (appstate.grid_nav_state == GRID_NAV_ROW) {
+  } else if (appstate.grid_nav_state==GRID_NAV_ROW) {
     if (val >= wininfo.grid_rows) {
       return HANDLE_CONTINUE; /* Invalid key in this grid, pass */
     }
@@ -1671,20 +1673,20 @@ void handle_commands(char *commands) {
   //printf("Commands; %s\n", commands);
   cmdcopy = strdup(commands);
   copyptr = cmdcopy;
-  while (*copyptr != '\0') {
+  while (*copyptr!='\0') {
     /* Parse with knowledge of quotes and escaping */
     is_quoted = is_escaped = FALSE;
     strptr = tok = copyptr;
-    while (*copyptr != '\0' && (is_quoted == TRUE || *copyptr != ',')) {
-      if (is_escaped == TRUE) {
+    while (*copyptr!='\0' && (is_quoted==TRUE || *copyptr!=',')) {
+      if (is_escaped==TRUE) {
         is_escaped = FALSE;
       }
 
-      if (*copyptr == '"' && is_escaped == FALSE) {
+      if (*copyptr=='"' && is_escaped==FALSE) {
         is_quoted = !is_quoted;
       }
 
-      if (*copyptr == '\\' && is_escaped == FALSE) {
+      if (*copyptr=='\\' && is_escaped==FALSE) {
         is_escaped = TRUE;
         copyptr++;
       }
@@ -1695,7 +1697,7 @@ void handle_commands(char *commands) {
       copyptr++;
     }
 
-    if (*strptr != '\0') {
+    if (*strptr!='\0') {
       *strptr = '\0';
 
       copyptr++;
@@ -1710,7 +1712,7 @@ void handle_commands(char *commands) {
       tok++;
 
     /* Record this command (if the command is not 'record') */
-    if (appstate.recording == record_ing && strncmp(tok, "record", 6)) {
+    if (appstate.recording==record_ing && strncmp(tok, "record", 6)) {
       //printf("Record: %s\n", tok);
       g_ptr_array_add(active_recording->commands, (gpointer) strdup(tok));
     }
@@ -1725,14 +1727,14 @@ void handle_commands(char *commands) {
       /* If this command starts with a dispatch function, call it */
       size_t cmdlen = strlen(dispatch[i].command);
       size_t tokcmdlen = strcspn(tok, " \t");
-      if (cmdlen == tokcmdlen && !strncmp(tok, dispatch[i].command, cmdlen)) {
+      if (cmdlen==tokcmdlen && !strncmp(tok, dispatch[i].command, cmdlen)) {
         /* tok + len + 1 is
          * "command arg1 arg2"
          *          ^^^^^^^^^ <-- this
          */
         char *args = tok + cmdlen;
 
-        if (*args == '\0')
+        if (*args=='\0')
           args = "";
         else
           args++;
@@ -1791,8 +1793,8 @@ void restore_history_point(int moves_ago) {
  * This may perform undesirably for vertically-stacked viewports or
  * for other odd configurations */
 int viewport_sort(const void *a, const void *b) {
-  viewport_t *va = (viewport_t *)a;
-  viewport_t *vb = (viewport_t *)b;
+  viewport_t *va = (viewport_t *) a;
+  viewport_t *vb = (viewport_t *) b;
 
   return va->x - vb->x;
 }
@@ -1844,7 +1846,8 @@ void query_screen_normal() {
     viewports[i].h = s->height;
     viewports[i].root = RootWindowOfScreen(s);
     viewports[i].screen_num = i;
-    viewports[i].screen = s; }
+    viewports[i].screen = s;
+  }
 }
 
 int query_current_screen() {
@@ -1887,7 +1890,7 @@ int query_current_screen_normal() {
    * active (where is the cursor) */
   for (i = 0; i < nviewports; i++) {
     if (!XQueryPointer(dpy, viewports[i].root, &dummywin, &dummywin,
-                      &x, &y, &dummyint, &dummyint, &dummyuint))
+                       &x, &y, &dummyint, &dummyint, &dummyuint))
       continue;
 
     if (pointinrect(x, y, viewports[i].x, viewports[i].y,
@@ -1901,9 +1904,9 @@ int query_current_screen_normal() {
 
 int pointinrect(int px, int py, int rx, int ry, int rw, int rh) {
   return (px >= rx)
-          && (px <= rx + rw)
-          && (py >= ry)
-          && (py <= ry + rh);
+      && (px <= rx + rw)
+      && (py >= ry)
+      && (py <= ry + rh);
 }
 
 void sigchld(int sig) {
@@ -1926,7 +1929,7 @@ void recordings_save(const char *filename) {
   int i = 0;
 
   output = fopen(filename, "w");
-  if (output == NULL) {
+  if (output==NULL) {
     fprintf(stderr, "Failure opening '%s' for write: %s\n", filename, strerror(errno));
     return; /* Should we exit instead? */
   }
@@ -1934,7 +1937,7 @@ void recordings_save(const char *filename) {
   for (i = 0; i < recordings->len; i++) {
     int j;
     recording_t *rec = g_ptr_array_index(recordings, i);
-    if (rec->commands->len == 0)
+    if (rec->commands->len==0)
       continue;
 
     fprintf(output, "%d ", rec->keycode);
@@ -1952,13 +1955,13 @@ void recordings_save(const char *filename) {
 
 void parse_recordings(const char *filename) {
   FILE *fp = fopen(filename, "r");
-  if (fp == NULL)
+  if (fp==NULL)
     return;
 
   static const int bufsize = 8192;
   char line[bufsize];
   /* fopen succeeded */
-  while (fgets(line, bufsize, fp) != NULL) {
+  while (fgets(line, bufsize, fp)!=NULL) {
     /* Kill the newline */
     *(line + strlen(line) - 1) = '\0';
 
@@ -1980,7 +1983,7 @@ void parse_recordings(const char *filename) {
 
 void openpixel(Display *dpy, Window zone, mouseinfo_t *mouseinfo) {
   XRectangle rect;
-  if (mouseinfo->x == -1 && mouseinfo->y == -1) {
+  if (mouseinfo->x==-1 && mouseinfo->y==-1) {
     return;
   }
 
@@ -1995,7 +1998,7 @@ void openpixel(Display *dpy, Window zone, mouseinfo_t *mouseinfo) {
 
 void closepixel(Display *dpy, Window zone, mouseinfo_t *mouseinfo) {
   XRectangle rect;
-  if (mouseinfo->x == -1 && mouseinfo->y == -1) {
+  if (mouseinfo->x==-1 && mouseinfo->y==-1) {
     return;
   }
 
@@ -2015,19 +2018,19 @@ int main(int argc, char **argv) {
 
   g_argv = argv;
 
-  if ((pcDisplay = getenv("DISPLAY")) == NULL) {
+  if ((pcDisplay = getenv("DISPLAY"))==NULL) {
     fprintf(stderr, "Error: DISPLAY environment variable not set\n");
     return EXIT_FAILURE;
   }
 
-  if ((dpy = XOpenDisplay(pcDisplay)) == NULL) {
+  if ((dpy = XOpenDisplay(pcDisplay))==NULL) {
     fprintf(stderr, "Error: Can't open display: %s\n", pcDisplay);
     return EXIT_FAILURE;
   }
 
   if (argc > 1 && (!strcmp(argv[1], "version")
-                   || !strcmp(argv[1], "-v")
-                   || !strcmp(argv[1], "--version"))) {
+      || !strcmp(argv[1], "-v")
+      || !strcmp(argv[1], "--version"))) {
     printf("keynav %s\n", KEYNAV_VERSION);
     return EXIT_SUCCESS;
   }
@@ -2040,7 +2043,7 @@ int main(int argc, char **argv) {
   parse_config();
   query_screens();
 
-  if (argc == 2) {
+  if (argc==2) {
     handle_commands(argv[1]);
   } else if (argc > 2) {
     fprintf(stderr, "Usage: %s [command string]\n", prog);
@@ -2058,10 +2061,6 @@ int main(int argc, char **argv) {
    * changes. */
   int xrandr_event_base = 0;
   int xrandr_error_base = 0;
-  int xrandr = XRRQueryExtension (dpy, &xrandr_event_base, &xrandr_error_base);
-  if (xrandr) {
-    XRRSelectInput(dpy, DefaultRootWindow(dpy), RRScreenChangeNotifyMask);
-  }
 
   if (daemonize) {
     printf("Daemonizing now...\n");
@@ -2074,55 +2073,52 @@ int main(int argc, char **argv) {
     XNextEvent(dpy, &e);
 
     switch (e.type) {
-      case KeyPress:
-        handle_keypress((XKeyEvent *)&e);
-        break;
+    case KeyPress:handle_keypress((XKeyEvent *) &e);
+      break;
 
       /* MapNotify means the keynav window is now visible */
-      case MapNotify:
-        update();
-        break;
+    case MapNotify:update();
+      break;
 
       // Configure events mean the window was changed (size, property, etc)
-      case ConfigureNotify:
-        update();
-        break;
+    case ConfigureNotify:update();
+      break;
 
-      case Expose:
-        if (zone) {
+    case Expose:
+      if (zone) {
         XCopyArea(dpy, canvas, zone, canvas_gc, e.xexpose.x, e.xexpose.y,
                   e.xexpose.width, e.xexpose.height,
                   e.xexpose.x, e.xexpose.y);
-        }
-        break;
+      }
+      break;
 
-      case MotionNotify:
-        if (zone) {
-        if (mouseinfo.x != -1 && mouseinfo.y != -1) {
+    case MotionNotify:
+      if (zone) {
+        if (mouseinfo.x!=-1 && mouseinfo.y!=-1) {
           closepixel(dpy, zone, &mouseinfo);
         }
         mouseinfo.x = e.xmotion.x;
         mouseinfo.y = e.xmotion.y;
         openpixel(dpy, zone, &mouseinfo);
-        }
-        break;
+      }
+      break;
 
       // Ignorable events.
-      case GraphicsExpose:
-      case NoExpose:
-      case LeaveNotify:   // Mouse left the window
-      case KeyRelease:    // key was released
-      case DestroyNotify: // window was destroyed
-      case UnmapNotify:   // window was unmapped (hidden)
-      case MappingNotify: // when keyboard mapping changes
-        break;
-      default:
-        if (e.type == xrandr_event_base + RRScreenChangeNotify) {
-          query_screens();
-        } else {
-          printf("Unexpected X11 event: %d\n", e.type);
-        }
-        break;
+    case GraphicsExpose:
+    case NoExpose:
+    case LeaveNotify:   // Mouse left the window
+    case KeyRelease:    // key was released
+    case DestroyNotify: // window was destroyed
+    case UnmapNotify:   // window was unmapped (hidden)
+    case MappingNotify: // when keyboard mapping changes
+      break;
+    default:
+      if (e.type==xrandr_event_base + RRScreenChangeNotify) {
+        query_screens();
+      } else {
+        printf("Unexpected X11 event: %d\n", e.type);
+      }
+      break;
     }
   }
 
