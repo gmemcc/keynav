@@ -946,7 +946,7 @@ void cmd_start(char *args) {
     zone = XCreateSimpleWindow(dpy, viewport->root,
                                wininfo.x, wininfo.y, wininfo.w, wininfo.h, 0, 0, 0);
     Atom atom = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
-    uint opacity = 0x80000000; /* 0x0 .. 0xffffffff */
+    uint opacity = 0x40000000; /* 0x0 .. 0xffffffff */
     XChangeProperty(dpy, zone, atom, XA_CARDINAL, 32,
                     PropModeReplace, (unsigned char *) &opacity, 1L);
 
