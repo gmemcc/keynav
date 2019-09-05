@@ -106,7 +106,6 @@ static int is_daemon = False;
 
 static Display *dpy;
 static Window zone;
-XRectangle *clip_rectangles = NULL;
 int nclip_rectangles = 0;
 
 static GC canvas_gc;
@@ -652,7 +651,6 @@ void updatecliprects(wininfo_t *info, XRectangle **rectangles, int *nrects) {
 
   if (rects!=nclip_rectangles) {
     nclip_rectangles = rects;
-    clip_rectangles = realloc(clip_rectangles, nclip_rectangles*sizeof(XRectangle));
   }
 }
 
@@ -665,8 +663,6 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
   int rect = 0;
 
   if (apply_clip) {
-    updatecliprects(info, &clip_rectangles, &nclip_rectangles);
-    memset(clip_rectangles, 0, nclip_rectangles*sizeof(XRectangle));
   }
 
 #ifdef PROFILE_THINGS
@@ -715,10 +711,6 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
     cairo_move_to(canvas_cairo, x_total_offset + 1, 0);
     cairo_line_to(canvas_cairo, x_total_offset + 1, info->h);
 
-    clip_rectangles[rect].x = x_total_offset + x_off;
-    clip_rectangles[rect].y = 0;
-    clip_rectangles[rect].width = info->border_thickness - x_w_off;
-    clip_rectangles[rect].height = info->h;
     rect++;
 
     x_total_offset += cell_width;
@@ -747,11 +739,6 @@ void updategrid(Window win, struct wininfo *info, int apply_clip, int draw) {
     cairo_move_to(canvas_cairo, 0, y_total_offset + 1);
     cairo_line_to(canvas_cairo, info->w, y_total_offset + 1);
 
-    clip_rectangles[rect].x = 0;
-    clip_rectangles[rect].y = y_total_offset + y_off;
-
-    clip_rectangles[rect].width = info->w;
-    clip_rectangles[rect].height = info->border_thickness - y_w_off;
     rect++;
 
     y_total_offset += cell_height;
@@ -871,10 +858,6 @@ void updategridtext(Window win, struct wininfo *info, int apply_clip, int draw) 
       }
 
       if (apply_clip) {
-        clip_rectangles[rect].x = xpos - rectwidth/2 + te.x_bearing/2;
-        clip_rectangles[rect].y = ypos - rectheight/2 + te.y_bearing/2;
-        clip_rectangles[rect].width = rectwidth + 1;
-        clip_rectangles[rect].height = rectheight + 1;
         rect++;
       }
       label[0]++;
@@ -1437,8 +1420,6 @@ void update() {
       XCopyArea(dpy, canvas, zone, canvas_gc, 0, 0, wininfo.w, wininfo.h, 0, 0);
     }
     if (clip) {
-      XShapeCombineRectangles(dpy, zone, ShapeBounding, 0, 0,
-                              clip_rectangles, nclip_rectangles, ShapeSet, 0);
     }
   }
 
