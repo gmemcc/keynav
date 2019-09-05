@@ -970,6 +970,8 @@ void cmd_start(char *args) {
     /* Tell the window manager not to manage us */
     winattr.override_redirect = 1;
     XChangeWindowAttributes(dpy, zone, CWOverrideRedirect, &winattr);
+    XStoreName(dpy, zone, "Keynav By Alex");
+    XSetIconName(dpy, zone, "keynav");
 
     XSelectInput(dpy, zone, StructureNotifyMask | ExposureMask
         | PointerMotionMask | LeaveWindowMask);
